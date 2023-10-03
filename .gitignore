@@ -1,0 +1,5 @@
+.__init__
+.vscode/
+.venv
+models/
+dataset/
