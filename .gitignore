@@ -3,6 +3,9 @@
 .venv
 docs/
 __pycache__/
+docs/
+__pycache__/
+*.mp4
 models/
 dataset/
 *.mp4
