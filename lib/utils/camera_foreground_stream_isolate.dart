@@ -4,6 +4,7 @@ import 'dart:isolate';
 import 'package:camera_bg/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:sightscribe/blocs/detected_objects/detected_objects_cubit.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 
@@ -24,7 +25,7 @@ class CameraStreamForegroundHandler extends TaskHandler {
     /// This Listener will restart the stream and socket connection,
     /// if it disconnects
     _channel.stream.listen((data) {
-      debugPrint("$data");
+      sendPort?.send(data);
     },
       onDone: () async {
         _channel = WebSocketChannel.connect(_wsUrl);

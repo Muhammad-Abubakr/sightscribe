@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_foreground_task/ui/with_foreground_task.dart';
 
-import '../blocs/camera/camera_isolate_bloc.dart';
+import 'package:sightscribe/blocs/detected_objects/detected_objects_cubit.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -14,8 +14,23 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return WithForegroundTask(
       child: Scaffold(
-        body: BlocBuilder<CameraIsolateBloc, CameraIsolateState>(
-            builder: (context, state) => const Center(child: Text("OK"))
+        body: BlocBuilder<DetectedObjectsCubit, DetectedObjectsState>(
+            builder: (context, state) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "Detected Objects",
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  Text(
+                    state.objects ?? "OK",
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
         ),
       ),
     );

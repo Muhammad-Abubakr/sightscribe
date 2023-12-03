@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 
 // ignore: depend_on_referenced_packages
@@ -6,6 +7,7 @@ import 'package:bloc/bloc.dart';
 import 'package:camera_bg/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:sightscribe/blocs/detected_objects/detected_objects_cubit.dart';
 import 'package:sightscribe/utils/permission_handler.dart';
 
 import '../../utils/camera_foreground_stream_isolate.dart';
@@ -16,8 +18,11 @@ part 'camera_isolate_state.dart';
 
 class CameraIsolateBloc extends Bloc<CameraIsolateEvent, CameraIsolateState> {
   ReceivePort? _receivePort;
+  late DetectedObjectsCubit _detectedObjectsCubit;
 
-  CameraIsolateBloc() : super(CameraIsolateStateInitial()) {
+  CameraIsolateBloc(DetectedObjectsCubit detectedObjectsCubit) : super(CameraIsolateStateInitial()) {
+    _detectedObjectsCubit = detectedObjectsCubit;
+
     // Map<Events, EventHandlers>
     on<InitEvent>(_isolator);
     on<ErrorEvent>(_updateCameraIsolateErrorState);
@@ -33,10 +38,7 @@ class CameraIsolateBloc extends Bloc<CameraIsolateEvent, CameraIsolateState> {
 
       // receiver port initialization
       _receivePort = FlutterForegroundTask.receivePort;
-      final bool isRegistered = _registerReceivePort(_receivePort);
-      if (!isRegistered) {
-        debugPrint('Failed to register receivePort!');
-      }
+      _registerReceivePort(_receivePort);
 
       // ...
       if (await FlutterForegroundTask.isRunningService) {
@@ -55,18 +57,11 @@ class CameraIsolateBloc extends Bloc<CameraIsolateEvent, CameraIsolateState> {
 
   /// Register the receiving port listener and handles the data being
   /// sent from the foreground service thread to the main thread
-  bool _registerReceivePort(ReceivePort? newReceivePort) {
-    if (newReceivePort == null) {
-      return false;
-    }
-    _closeReceivePort();
-
+  void _registerReceivePort(ReceivePort? newReceivePort) {
     _receivePort = newReceivePort;
     _receivePort?.listen((data) {
-      debugPrint(data);
+      _detectedObjectsCubit.updateDetectedObjects(data);
     });
-
-    return _receivePort != null;
   }
 
   /// ... Destructor
