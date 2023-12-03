@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
@@ -11,19 +12,23 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 // CONSTANTS
 const _stopStreamingButtonID = "CAMERA_STREAM";
 final _wsUrl = Uri.parse('ws://192.168.43.217:8000/stream/image/');
+const int _framesPerSecond = 2;   // Throttling Parameter I
+final int _delayMilliseconds = (1000 / _framesPerSecond).round(); // Throttling Parameter II
 
 /// Task Handler that is run as the foreground service
 class CameraStreamForegroundHandler extends TaskHandler {
   late WebSocketChannel _channel;
   late CameraController _cameraController;
+  final StreamController<bool> _frameRateController = StreamController<bool>();
+  bool _canSendFrame = false;
 
   // Called when the task is started.
   @override
   void onStart(DateTime timestamp, SendPort? sendPort) async {
     _channel = WebSocketChannel.connect(_wsUrl);
 
-    /// This Listener will restart the stream and socket connection,
-    /// if it disconnects
+    // This Listener will restart the stream and socket connection,
+    // if it disconnects
     _channel.stream.listen((data) {
       sendPort?.send(data);
     },
@@ -47,8 +52,16 @@ class CameraStreamForegroundHandler extends TaskHandler {
     );
     await _cameraController.initialize();
 
+    // Periodically send a signal to allow sending the next frame
+    Timer.periodic(Duration(milliseconds: _delayMilliseconds), (timer) {
+      _frameRateController.add(true);
+    });
+
+    // register the throttler
+    _registerThrottler();
+
     // Start streaming camera frames
-    startStreaming();
+    _startStreaming();
   }
 
   /// Called every [interval] milliseconds in [ForegroundTaskOptions].
@@ -57,15 +70,17 @@ class CameraStreamForegroundHandler extends TaskHandler {
     _channel.sink.add(jsonEncode({"ping": "keep-alive"}));
   }
 
-  /// Called when the notification button on the Android platform is pressed.
+  /// Called when the [FlutterForegroundTask] exits.
   @override
   void onDestroy(DateTime timestamp, SendPort? sendPort) async {
     // Clean up resources when the task is stopped
-    _channel.sink.close();
+    await _channel.sink.close();
     await _cameraController.dispose();
+    await _frameRateController.close();
   }
 
-  /// Called when [NotificationButton] is pressed
+  /// Called when [NotificationButton] is pressed, if so stop the ForegroundTask
+  /// and exit the application
   @override
   void onNotificationButtonPressed(String id) async {
     if (id == _stopStreamingButtonID) {
@@ -75,17 +90,28 @@ class CameraStreamForegroundHandler extends TaskHandler {
     super.onNotificationButtonPressed(id);
   }
 
-  // Helper Functions
-  // Function to start streaming camera frames
-  Future<void> startStreaming() async {
-    _cameraController.startImageStream((CameraImage image) {
-      // Process the camera image and send it through WebSocket
-      final Uint8List imageData = concatenatePlanes(image.planes);
-      _channel.sink.add(imageData);
+  /*
+   * Helper Functions
+   */
+  /// Function to start streaming camera frames. It Checks if a frame
+  /// can be sent using [canSendFrame] and [_frameRateController] based
+  /// on the desired frame rate, if so then Process the camera image and
+  /// send it through WebSocket
+  Future<void> _startStreaming() async {
+    _cameraController.startImageStream((CameraImage image) async {
+      if (_canSendFrame) {
+        final Uint8List imageData = _concatenatePlanes(image.planes);
+        _channel.sink.add(imageData);
+
+        // Regain the Throttle flag
+        _frameRateController.add(false);
+      }
     });
   }
 
-  Uint8List concatenatePlanes(planes) {
+  /// Concatenate byte planes to a single [Uint8List] that can be sent
+  /// through the [Socket]
+  Uint8List _concatenatePlanes(planes) {
     final WriteBuffer allBytes = WriteBuffer();
     for (var plane in planes) {
       allBytes.putUint8List(plane.bytes);
@@ -93,6 +119,13 @@ class CameraStreamForegroundHandler extends TaskHandler {
     return allBytes.done().buffer.asUint8List();
   }
 
+
+  /// Register a listener to [\_frameRateController] to control [\_canSendFrame]
+  void _registerThrottler() {
+    _frameRateController.stream.listen((canSendOrNot) {
+        _canSendFrame = canSendOrNot;
+    });
+  }
 }
 
 
