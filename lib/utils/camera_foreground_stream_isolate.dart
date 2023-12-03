@@ -1,12 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:isolate';
 
 import 'package:camera_bg/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:sightscribe/blocs/detected_objects/detected_objects_cubit.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:web_socket_channel/status.dart' as status;
+// import 'package:web_socket_channel/status.dart' as status;
 
 // CONSTANTS
 const _stopStreamingButtonID = "CAMERA_STREAM";
@@ -70,6 +70,7 @@ class CameraStreamForegroundHandler extends TaskHandler {
   void onNotificationButtonPressed(String id) async {
     if (id == _stopStreamingButtonID) {
       await FlutterForegroundTask.stopService();
+      exit(0);
     }
     super.onNotificationButtonPressed(id);
   }
