@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sightscribe/blocs/camera/camera_isolate_bloc.dart';
-import 'package:sightscribe/blocs/screens/home_screen.dart';
+
+import 'screens/home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,12 +14,12 @@ void main() {
           create: (_) => cameraIsolateBloc,
         ),
       ],
-      child: const CameraApp()
+      child: const App()
   ));
 }
 
-class CameraApp extends StatelessWidget {
-  const CameraApp({super.key});
+class App extends StatelessWidget {
+  const App({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_foreground_task/ui/with_foreground_task.dart';
 
-import '../camera/camera_isolate_bloc.dart';
+import '../blocs/camera/camera_isolate_bloc.dart';
+
 
 class HomeScreen extends StatelessWidget {
   static const String route = "/";
