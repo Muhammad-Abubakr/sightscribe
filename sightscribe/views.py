@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from utilities.retina import objDRetina, serialize
+from utilities.object_detection import objDRetina, serialize
 
 
 class CameraService(APIView):

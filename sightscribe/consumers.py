@@ -1,14 +1,15 @@
-import base64
 import io
 import json
 
 from channels.generic.websocket import WebsocketConsumer
-from utilities.retina import objDRetina, serialize
+from concurrent.futures.thread import ThreadPoolExecutor
 from PIL import Image
+
+from utilities.object_detection import objDRetina, serialize
 
 
 class ImageStreamConsumer(WebsocketConsumer):
-    count = 0
+    frame = 0
 
     def connect(self):
         self.accept()
@@ -19,6 +20,8 @@ class ImageStreamConsumer(WebsocketConsumer):
 
     def receive(self, text_data=None, bytes_data=None):
         if bytes_data is not None:
-            self.send(serialize(objDRetina(Image.open(io.BytesIO(bytes_data)))))
-            self.count += 1
+            detected_objects = objDRetina(Image.open(io.BytesIO(bytes_data)))
+            self.send(serialize(detected_objects))
 
+            # with ThreadPoolExecutor(max_workers=4) as executor:
+            #     executor.submit()
